@@ -1,7 +1,7 @@
 from typing import Union
 from pathlib import Path
 import psycopg2
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,6 +17,32 @@ santapp = FastAPI(middleware = [
     )
 ])
 
+params = {
+        "host": "postgres",
+        "port": "5432",
+        "dbname": "santa",
+        "user": "admin",
+        "password": "password"
+    }
+
+
+class User(BaseModel):
+    nome:str
+    password:str
+
+@santapp.post("/login")
+def login(user:User):
+    with psycopg2.connect(**params) as conn:
+        with conn.cursor() as cur:
+                try:
+                    cur.execute("SELECT id FROM admins WHERE nome = %s and \"password\"= %s;", (user.nome, user.password))
+                    result = cur.fetchone()
+                    token = f"token_{result[0]}"
+                    return token
+                except (Exception, psycopg2.DatabaseError):
+                    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+
 
 class Persona(BaseModel):
     nome:str
@@ -25,13 +51,6 @@ class Persona(BaseModel):
 
 @santapp.get("/extract")
 def extract_random_name():
-    params = {
-        "host": "postgres",
-        "port": "5432",
-        "dbname": "santa",
-        "user": "admin",
-        "password": "password"
-    }
     with psycopg2.connect(**params) as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT NOME FROM elenco ORDER BY RANDOM() LIMIT 1")
@@ -46,14 +65,6 @@ class Lista(BaseModel):
 
 @santapp.post("/lista")
 def make_list(lista:Lista):
-    params={
-        "host":"postgres",
-        "port":"5432",
-        "dbname":"santa",
-        "user":"admin",
-        "password":"password"    
-    }
-
     with psycopg2.connect(**params) as conn:
         with conn.cursor() as cur:
             cur.execute("Insert INTO elenco (nome) VALUES (%s) ;", (lista.titolo,))
@@ -66,14 +77,6 @@ def make_list(lista:Lista):
 
 @santapp.post("/lista/{id}")
 def add_persona(persona:Persona, id):
-    params={
-        "host":"postgres",
-        "port":"5432",
-        "dbname":"santa",
-        "user":"admin",
-        "password":"password"    
-    }
-
     with psycopg2.connect(**params) as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id FROM elenco WHERE id = %s;", (id,))
@@ -83,13 +86,6 @@ def add_persona(persona:Persona, id):
 
 @santapp.get("/lista")
 def show_list():
-    params = {
-        "host": "postgres",
-        "port": "5432",
-        "dbname": "santa",
-        "user": "admin",
-        "password": "password"
-    }
     with psycopg2.connect(**params) as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, nome FROM elenco")
@@ -100,13 +96,6 @@ def show_list():
 
 @santapp.get("/lista/{id}")
 def show_persone(id):
-    params = {
-        "host": "postgres",
-        "port": "5432",
-        "dbname": "santa",
-        "user": "admin",
-        "password": "password"
-    }
     with psycopg2.connect(**params) as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT nome, email FROM persone WHERE lista_id = %s;", (id,))
