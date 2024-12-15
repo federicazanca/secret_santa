@@ -17,28 +17,10 @@ santapp = FastAPI(middleware = [
     )
 ])
 
-@santapp.get("/")
-def read_root():
-    return {"SECRET SANTA EXTRACTION"}
 
 class Persona(BaseModel):
     nome:str
     email:str
-
-# @santapp.put("/names")
-# def add_persona(persona:Persona):
-#     params={
-#         "host":"postgres",
-#         "port":"5432",
-#         "dbname":"santa",
-#         "user":"admin",
-#         "password":"password"    
-#     }
-
-#     with psycopg2.connect(**params) as conn:
-#         with conn.cursor() as cur:
-#             cur.execute("INSERT INTO elenco (NOME) VALUES (%s)", (persona.nome,))
-#             conn.commit()
 
 
 @santapp.get("/extract")
@@ -61,6 +43,7 @@ def extract_random_name():
 class Lista(BaseModel):
     titolo:str  
 
+
 @santapp.post("/lista")
 def make_list(lista:Lista):
     params={
@@ -80,7 +63,8 @@ def make_list(lista:Lista):
             
     return {"id":id}
 
-@santapp.post("/lista/:id")
+
+@santapp.post("/lista/{id}")
 def add_persona(persona:Persona, id):
     params={
         "host":"postgres",
@@ -92,10 +76,10 @@ def add_persona(persona:Persona, id):
 
     with psycopg2.connect(**params) as conn:
         with conn.cursor() as cur:
-            cur.execute("FROM elenco SELECT id WHERE id = %s;", (id,))
-            cur.execute("CREATE TABLE IF NOT EXISTS persone (id SERIAL PRIMARY KEY, lista_id INT, nome TEXT, email TEXT)")
-            cur.execute("INSERT INTO persone (lista_id, nome, email) VALUES %s %s;", (id, persona.nome, persona.email,))
+            cur.execute("SELECT id FROM elenco WHERE id = %s;", (id,))
+            cur.execute("INSERT INTO persone (lista_id, nome, email) VALUES (%s, %s, %s);", (id, persona.nome, persona.email,))
             conn.commit()
+
 
 @santapp.get("/lista")
 def show_list():
@@ -111,10 +95,11 @@ def show_list():
             cur.execute("SELECT id, nome FROM elenco")
             result = cur.fetchall()
     
-    return result
+    return [{"id": l[0], "titolo": l[1]} for l in result]
+
 
 @santapp.get("/lista/{id}")
-def show_persone():
+def show_persone(id):
     params = {
         "host": "postgres",
         "port": "5432",
@@ -127,4 +112,4 @@ def show_persone():
             cur.execute("SELECT nome, email FROM persone WHERE lista_id = %s;", (id,))
             persone = cur.fetchall()
     
-    return persone
+    return [{"nome": l[0], "email": l[1]} for l in persone]
