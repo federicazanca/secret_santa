@@ -3,16 +3,60 @@ async function populateLists() {
         method: "GET",
     });
     const [ ...lists ] = await response.json();
-    for (const { id, titolo } of lists) {
-        const node = document.createElement('li');
-        const nodeText = document.createTextNode(titolo);
-        node.appendChild(nodeText);
-        const peopleNode = document.createElement('ul');
-        peopleNode.id = `lista${id}`;
-        node.appendChild(peopleNode);
-        document.getElementById("lists").appendChild(node);
-        populateList(id, peopleNode);
+    const parentNode = document.getElementById("lists");
+    for (const list of lists) {
+        const { node, peopleNode } = createListNode(list);
+        parentNode.appendChild(node);
+        populateList(list.id, peopleNode);
     }
+    parentNode.appendChild(createNewListComponent());
+}
+
+function createNewListComponent() {
+    const node = document.createElement('div');
+    const titleNode = document.createElement('input');
+    titleNode.placeholder = "Nuova lista";
+    const submitNode = document.createElement('button');
+    submitNode.textContent = "Crea";
+    submitNode.onclick = async () => {
+        await fetch("http://localhost:5000/lista", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ titolo: titleNode.value }),
+        });
+        document.getElementById("lists").replaceChildren();
+        populateLists();
+    };
+    node.appendChild(titleNode);
+    node.appendChild(submitNode);
+    return node;
+}
+
+function createNewGuestComponent(id) {
+    const node = document.createElement('div');
+    const nameNode = document.createElement('input');
+    nameNode.placeholder = "Nome";
+    const emailNode = document.createElement('input');
+    emailNode.placeholder = "Email";
+    const submitNode = document.createElement('button');
+    submitNode.textContent = "Aggiungi";
+    submitNode.onclick = async () => {
+        await fetch(`http://localhost:5000/lista/${id}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ nome: nameNode.value, email: emailNode.value }),
+        });
+        document.getElementById("lists").replaceChildren();
+        populateLists();
+    };
+    node.appendChild(nameNode);
+    node.appendChild(emailNode);
+    node.appendChild(submitNode);
+    return node;
 }
 
 async function populateList(id, parentNode) {
@@ -20,12 +64,31 @@ async function populateList(id, parentNode) {
         method: "GET",
     });
     const [ ...people ] = await response.json();
-    for (const { nome, email } of people) {
-        const node = document.createElement('li');
-        const nodeText = document.createTextNode(`${nome} ~ ${email}`);
-        node.appendChild(nodeText);
+    for (const guest of people) {
+        const node = createListGuestNode(guest);
         parentNode.appendChild(node);
     }
+    parentNode.appendChild(createNewGuestComponent(id));
 }
 
-populateLists();
+function createListNode({ id, titolo }) {
+    const node = document.createElement('li');
+    const nodeText = document.createTextNode(titolo);
+    node.appendChild(nodeText);
+    const peopleNode = document.createElement('ul');
+    node.appendChild(peopleNode);
+    return { node, peopleNode };
+}
+
+function createListGuestNode({ nome, email }) {
+    const node = document.createElement('li');
+    const nodeText = document.createTextNode(`${nome} ~ ${email}`);
+    node.appendChild(nodeText);
+    return node;
+}
+
+function main() {
+    populateLists();
+}
+
+main();
