@@ -1,26 +1,31 @@
-async function add_persona() {
-    const nameInput = document.getElementById("nameInput").value;
-    if (!nameInput) {
-        alert("Please enter a name");
-        return;
-    }
-    const response = await fetch("http://localhost:5000/names", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: nameInput }),
-    });
-    const result = await response.json();
-    alert(result.message || "Name added successfully");
-}
-
-async function extract_random_name() {
-    const response = await fetch("http://localhost:5000/extract", {
+async function populateLists() {
+    const response = await fetch("http://localhost:5000/lista", {
         method: "GET",
     });
-    const result = await response.json();
-    if (result.random_name) {
-        alert(`Randomly selected name: ${result.random_name}`);
-    } else {
-        alert(result.message || "No names found in the list");
+    const [ ...lists ] = await response.json();
+    for (const { id, titolo } of lists) {
+        const node = document.createElement('li');
+        const nodeText = document.createTextNode(titolo);
+        node.appendChild(nodeText);
+        const peopleNode = document.createElement('ul');
+        peopleNode.id = `lista${id}`;
+        node.appendChild(peopleNode);
+        document.getElementById("lists").appendChild(node);
+        populateList(id, peopleNode);
     }
 }
+
+async function populateList(id, parentNode) {
+    const response = await fetch(`http://localhost:5000/lista/${id}`, {
+        method: "GET",
+    });
+    const [ ...people ] = await response.json();
+    for (const { nome, email } of people) {
+        const node = document.createElement('li');
+        const nodeText = document.createTextNode(`${nome} ~ ${email}`);
+        node.appendChild(nodeText);
+        parentNode.appendChild(node);
+    }
+}
+
+populateLists();
