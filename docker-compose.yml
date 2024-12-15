@@ -1,0 +1,27 @@
+services:
+  backend:
+    build: 
+      context: ./backend
+    volumes:
+      - ./backend:/code
+    ports:
+      - 5000:8000
+
+  frontend:
+    build: 
+      context: ./frontend
+    volumes:
+      - ./frontend:/code
+    ports:
+      - 9000:8000
+
+  postgres:
+    image: postgres:13.1
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=santa
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+    ports:
+      - 5432:5432
